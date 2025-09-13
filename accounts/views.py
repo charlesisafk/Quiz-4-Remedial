@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from .models import Profile, CustomUser
 from jobs.models import Job, JobApplicant
+from .forms import ProfileForm
 
 # Create your views here.
 
@@ -82,14 +83,45 @@ def signin_view(request):
         if user is not None:
             login(request, user)
             if not Profile.objects.filter(user=user).exists():
-                print('User does not have a profile.')
-            print('User has a profile.')
+                return redirect('auth:profile_create')
+            return redirect('posts:post-list')
         else:
             messages.error(request, 'Invalid email or password')
     return render(request, 'auth/signin.html')
 
 def profile_create_view(request):
-    pass
+    if not request.user.is_authenticated:
+        messages.error(request, 'Please sign in first.')
+        return redirect('auth:signin')
+
+    if not Profile.objects.filter(user=request.user).exists():
+        if request.method == 'POST':
+            first_name = request.POST.get('first_name','').strip()
+            last_name = request.POST.get('last_name','').strip()
+            bio = request.POST.get('bio','').strip()
+            profile_picture = request.FILES.get('profile_picture')
+
+            if not all([first_name, last_name, bio]):
+                messages.error(request, 'All fields are required.')
+                return render(request, 'auth/profile_create.html', {
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'bio': bio,
+                    'profile_picture': profile_picture,
+                    })
+
+            profile = Profile.objects.create(
+                user=request.user,
+                first_name=first_name,
+                last_name=last_name,
+                bio=bio,
+                profile_picture=profile_picture,
+            )
+            return redirect('posts:post-list')
+    return render(request, 'auth/profile_create.html')
+
+
+
 def profile_view(request):
     if not request.user.is_authenticated:
         messages.error(request, 'Please sign in first.')
