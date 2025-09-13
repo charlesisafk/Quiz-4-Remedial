@@ -42,7 +42,7 @@
                                     {{ form.job_description.errors|join:", " }}
                                 </div>
                             {% endif %}
-                            <small class="text-muted">
+                            <br><small class="text-muted">
                                 Include key responsibilities, requirements, and any other relevant information.
                             </small>
                         </div>
@@ -91,7 +91,7 @@
 
                         <!-- Submit Buttons -->
                         <div class="d-flex justify-content-end gap-2">
-                            <a href="{% url 'jobs:job_list_view' %}" class="btn btn-light">Cancel</a>
+                            <a href="{% url 'jobs:job_list_view'%}" class="btn btn-light">Cancel</a>
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-check2"></i> Create Job
                             </button>

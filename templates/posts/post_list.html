@@ -17,7 +17,11 @@
                 <!-- Posts Feed -->
                 {% for post in object_list %}
                     <div class="card mb-4 shadow-sm position-relative">
-                        <a href="{% url 'posts:post-detail' post.slug %}" class="text-decoration-none text-dark">
+                       {% if post.slug %}
+                           <a href="{% url 'posts:post-detail' post.slug %}" class="text-decoration-none text-dark">
+                       {% else %}
+                           <span class="text-muted">Invalid post (missing slug)</span>
+                       {% endif %}
                             <!-- Post Header -->
                             <div class="card-header bg-white border-0 pt-3">
                                 <div class="d-flex align-items-center">
@@ -33,10 +37,22 @@
                                             <button class="btn btn-light btn-sm rounded-circle" type="button" data-bs-toggle="dropdown" onclick="event.preventDefault();">
                                                 <i class="bi bi-three-dots"></i>
                                             </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li><a class="dropdown-item" href="{% url 'posts:post-update' post.slug %}" onclick="event.preventDefault(); window.location.href=this.href;">Edit</a></li>
-                                                <li><a class="dropdown-item text-danger" href="{% url 'posts:post-delete' post.slug %}" onclick="event.preventDefault(); window.location.href=this.href;">Delete</a></li>
-                                            </ul>
+                                            {% if post.slug %}
+                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                    <li>
+                                                        <a class="dropdown-item" href="{% url 'posts:post-update' post.slug %}" onclick="event.preventDefault(); window.location.href=this.href;">
+                                                            Edit
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="{% url 'posts:post-delete' post.slug %}" onclick="event.preventDefault(); window.location.href=this.href;">
+                                                            Delete
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            {% else %}
+                                                <span class="text-muted px-3">Invalid post (missing slug)</span>
+                                            {% endif %}
                                         </div>
                                     {% endif %}
                                 </div>

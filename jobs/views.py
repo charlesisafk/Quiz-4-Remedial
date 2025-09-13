@@ -1,6 +1,6 @@
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import UpdateView, DeleteView
 from django.contrib import messages
 from django.views.generic.edit import CreateView
@@ -10,34 +10,49 @@ from .models import Job, JobApplicant
 # Create your views here.
 
 class JobCreateView(CreateView):
-    pass
+    model = Job
+    fields = ['job_title', 'job_description', 'min_offer', 'max_offer', 'location']
+    template_name = 'jobs/job_create.html'
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user  # Assign job to creator
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('jobs:job_detail_view', kwargs={'pk': self.object.pk})
+
+    def test_func(self):
+        user = self.request.user
+        return getattr(user, 'is_admin', False) and user.is_staff
 def job_list_view(request):
     jobs = Job.objects.all()
     query = request.GET.get('q', None)
     if query is not None:
         jobs = jobs.filter(
-            Q(job_title__icontains=query),
-            Q(job_description__icontains=query),
+            Q(job_title__icontains=query) |
+            Q(job_description__icontains=query) |
             Q(location__icontains=query)
         )
     context = {
         'jobs': jobs,
     }
-    return render(request, 'jobs/job_list.html')
+    return render(request, 'jobs/job_list.html', context)
 
 def job_detail_view(request, pk):
-    try:
-        user = request.user
-        job = Job.objects.get(pk=pk)
+    user = request.user
 
-        if not user.is_authenticated:
-            return render(request, 'auth/401.html', status=401)
-    except Job.DoesNotExist:
-        return render(request, 'auth/404.html', status=404)
-        
+    if not user.is_authenticated:
+        return render(request, 'auth/401.html', status=401)
+
+    job = get_object_or_404(Job, pk=pk)
+
     applicants = JobApplicant.objects.filter(job=job)
-    has_applied = JobApplicant.objects.filter(job=job, user=user).exists() if user.is_authenticated else False
-    
+    has_applied = JobApplicant.objects.filter(job=job, user=user).exists()
+
+    if has_applied:
+        messages.error(request, "You've already applied to this job.")
+        return redirect('jobs:job_list_view')
+
     context = {
         'job': job,
         'user': user,
@@ -45,6 +60,7 @@ def job_detail_view(request, pk):
         'has_applied': has_applied,
     }
     return render(request, 'jobs/job_detail.html', context)
+
 
 class JobUpdateView(UpdateView):
     form_class = JobForm

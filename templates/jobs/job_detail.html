@@ -60,7 +60,12 @@
                 {% else %}
                     <h5 class="card-title mb-3">Apply for this Position</h5>
                     {% if user.is_authenticated %}
-                        <form method="post" action="{% url 'jobs:job_apply' job.pk %}" enctype="multipart/form-data">
+                        {% if has_applied %}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-circle me-2"></i>You have already applied to this job.
+                            </div>
+                        {% else %}
+                            <form method="post" action="{% url 'jobs:job_apply' job.pk %}" enctype="multipart/form-data">
                                 {% csrf_token %}
                                 <div class="mb-3">
                                     <label for="resume" class="form-label">Upload Resume</label>
@@ -71,6 +76,11 @@
                                     <i class="bi bi-send"></i> Submit Application
                                 </button>
                             </form>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>Please <a href="{% url 'auth:signin' %}">sign in</a> to apply.
+                        </div>
                     {% endif %}
                 {% endif %}
                     </div>

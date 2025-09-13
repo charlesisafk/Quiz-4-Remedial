@@ -76,13 +76,23 @@ def signup_view(request):
             return render(request, 'auth/signup.html', {'email': email, 'username': username})
     return render(request, 'auth/signup.html')
 def signin_view(request):
+    if request.user.is_authenticated:
+        return redirect('posts:post-list')
+
     if request.method == 'POST':
-        email = request.POST.get('email')
-        password = request.POST.get('password')
+        email = request.POST.get('email','').strip()
+        password = request.POST.get('password','')
+
+        if not email or not password:
+            messages.error(request, 'Both email and password are required.')
+            return render(request, 'auth/signin.html')
+
         user = authenticate(request, email=email, password=password)
         if user is not None:
             login(request, user)
-            if not Profile.objects.filter(user=user).exists():
+
+            if not hasattr(user, 'profile'):
+                messages.info(request, 'Please complete your profile.')
                 return redirect('auth:profile_create')
             return redirect('posts:post-list')
         else:
@@ -92,32 +102,35 @@ def signin_view(request):
 def profile_create_view(request):
     if not request.user.is_authenticated:
         messages.error(request, 'Please sign in first.')
-        return redirect('auth:signin')
+        return redirect('signin')
 
-    if not Profile.objects.filter(user=request.user).exists():
-        if request.method == 'POST':
-            first_name = request.POST.get('first_name','').strip()
-            last_name = request.POST.get('last_name','').strip()
-            bio = request.POST.get('bio','').strip()
-            profile_picture = request.FILES.get('profile_picture')
+    if hasattr(request.user, 'profile'):
+        messages.info(request, 'You already have a profile.')
+        return redirect('profile_view')
 
-            if not all([first_name, last_name, bio]):
-                messages.error(request, 'All fields are required.')
-                return render(request, 'auth/profile_create.html', {
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'bio': bio,
-                    'profile_picture': profile_picture,
-                    })
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name','').strip()
+        last_name = request.POST.get('last_name','').strip()
+        bio = request.POST.get('bio','').strip()
+        profile_picture = request.FILES.get('profile_picture')
 
-            profile = Profile.objects.create(
-                user=request.user,
-                first_name=first_name,
-                last_name=last_name,
-                bio=bio,
-                profile_picture=profile_picture,
-            )
-            return redirect('posts:post-list')
+        if not all([first_name, last_name, bio]):
+            messages.error(request, 'All fields are required.')
+            return render(request, 'auth/profile_create.html', {
+                'first_name': first_name,
+                'last_name': last_name,
+                'bio': bio,
+                'profile_picture': profile_picture,
+                })
+
+        profile = Profile.objects.create(
+            user=request.user,
+            first_name=first_name,
+            last_name=last_name,
+            bio=bio,
+            profile_picture=profile_picture,
+        )
+        return redirect('posts:post-list')
     return render(request, 'auth/profile_create.html')
 
 
@@ -128,26 +141,28 @@ def profile_view(request):
         return redirect('auth:signin')
 
     profile = Profile.objects.filter(user=request.user).first()
-    if profile:
-        user = request.user
-        if user.is_admin and user.is_staff:
-            job_posted = Job.objects.filter(user=user)
-            context = {
-                'profile': profile,
-                'job_posted': job_posted,
-                'user': user,
-            }
-        else:
-            applied_jobs = JobApplicant.objects.filter(user=user)
-            context = {
-                'profile': profile,
-                'applied_jobs': applied_jobs,
-                'user': user,
-            }
-        return render(request, 'auth/profile_view.html', context)
-    else:
+    if not profile:
         messages.info(request, 'Profile does not exist.')
         return redirect('auth:profile_create')
+
+    user = request.user
+
+    if getattr(user, 'is_admin', False) and user.is_staff:
+        job_posted = Job.objects.filter(user=user)
+        context = {
+            'profile': profile,
+            'job_posted': job_posted,
+            'user': user,
+        }
+    else:
+        applied_jobs = JobApplicant.objects.filter(user=user)
+        context = {
+            'profile': profile,
+            'applied_jobs' : applied_jobs,
+            'user': user,
+        }
+    return render(request, 'auth/profile_view.html', context)
+
 
 def logout_view(request):
     logout(request)

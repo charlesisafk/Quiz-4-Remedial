@@ -22,9 +22,11 @@
                             <input type="password" class="form-control" id="password" name="password" required>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Sign In</button>
+                        <p>Don't have an account? <a href="{% url 'auth:signup' %}">Sign up here</a></p>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+</div>
 {% endblock %}

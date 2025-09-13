@@ -42,7 +42,7 @@
                     {% for job in jobs %}
                         <div class="col">
                             <div class="card h-100 shadow-sm position-relative">
-                                <a href="{% url 'jobs:job_detail_view' pk=job.id %}" class="text-decoration-none text-dark">
+                                <a href="{% url 'jobs:job_detail_view' job.id %}" class="text-decoration-none text-dark">
                                     <!-- Job Header -->
                                     <div class="card-header bg-white border-0">
                                         <div class="d-flex align-items-center">

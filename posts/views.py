@@ -3,7 +3,7 @@ from django.views.generic import ListView, DetailView, DeleteView, UpdateView, C
 from django.http import Http404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from .models import Post
 from .forms import PostForm
 # Create your views here.
@@ -22,16 +22,27 @@ class PostDetailSlugView(DetailView):
     queryset = Post.objects.all()
     template_name = 'posts/post_detail.html'
 
-    def get_object(self, queryset=None):
-        slug = self.kwargs.get("slug")
-        return get_object_or_404(Post, slug=slug)
+    def get_object(self, *args, **kwargs):
+        slug = self.kwargs.get('slug')
+
+        try:
+            instance = Post.objects.get(slug=slug)
+        except Post.DoesNotExist:
+            raise Http404("Post not found")
+        except Post.MultipleObjectsReturned:
+            qs = Post.objects.filter(slug=slug)
+            instance = qs.first()
+        except:
+            raise Http404("Invalid slug")
+        return instance
 
 
     
 class PostDeleteView(DeleteView):
     model = Post
     template_name = 'posts/post_confirm_delete.html'
-    success_url = 'posts:post-list'
+    success_url = reverse_lazy('posts:post-list')
+
     
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
@@ -51,7 +62,7 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
         return obj
     
     def get_success_url(self):
-        return reverse_lazy('posts:post-detail', kwargs={'slug': self.object.slug})
+        return reverse('posts:post-detail', kwargs={'slug': self.object.slug})
     
 class PostCreateView(CreateView):
     form_class = PostForm

@@ -3,13 +3,19 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 import os
 import random
+import string
 def get_filename_ext(filepath):
     base_name = os.path.basename(filepath)
     name, ext = os.path.splitext(base_name)
     return name, ext
 
 def upload_image_path(instance, filename):
-    pass
+    name, ext = get_filename_ext(filename)
+    random_str = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+    user_id = instance.user.id if instance.user else 'anonymous'
+    new_filename = f"profile_{user_id}_{random_str}{ext}"
+
+    return f"profile_pictures/{user_id}/{new_filename}"
 
 class UserManager(BaseUserManager):
     def create_user(self, email, username, password=None, is_active=True, is_staff=False, is_admin=False):
@@ -23,9 +29,9 @@ class UserManager(BaseUserManager):
         )
         user_obj.username = username
         user_obj.set_password(password)  # Hash the password
-        user_obj.active = is_active
-        user_obj.staff = is_staff
-        user_obj.admin = is_admin
+        user_obj.is_active = is_active
+        user_obj.is_staff = is_staff
+        user_obj.is_admin = is_admin
         user_obj.save(using=self._db)
 
         return user_obj
@@ -49,9 +55,6 @@ class UserManager(BaseUserManager):
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True, blank=False)
     username = models.CharField(max_length=150, unique=True, blank=False)
-    staff = models.BooleanField(default=False)
-    active = models.BooleanField(default=True)
-    admin = models.BooleanField(default=False)
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -67,17 +70,6 @@ class CustomUser(AbstractUser):
     def has_module_perms(self, app_label):
         return True
 
-    @property
-    def is_staff(self):
-        return self.staff
-
-    @property
-    def is_active(self):
-        return self.active
-
-    @property
-    def is_admin(self):
-        return self.admin
     
 
 
